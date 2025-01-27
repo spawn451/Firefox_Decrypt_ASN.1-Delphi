@@ -11,7 +11,7 @@ This tool is intended for **legitimate password recovery purposes only**, such a
 
 Please ensure you have the legal right to access any passwords you attempt to decrypt.
 
-## Features
+## 🌟 Features
 
 - Supports multiple Firefox profiles
 - Handles both older and newer Firefox encryption schemes
@@ -22,7 +22,7 @@ Please ensure you have the legal right to access any passwords you attempt to de
 - Automatic profile detection
 - Cross-platform compatible (Windows)
 
-## Technical Details
+## 🏗️ Technical Details
 
 The tool implements Firefox's password encryption scheme, including:
 - ASN.1 structure parsing
@@ -31,7 +31,7 @@ The tool implements Firefox's password encryption scheme, including:
 - NSS (Network Security Services) master key extraction
 - Support for key4.db databases
 
-## Prerequisites
+## 🔧 Prerequisites
 
 - Windows operating system
 - Firefox profile with saved passwords
@@ -41,7 +41,7 @@ The tool implements Firefox's password encryption scheme, including:
   - UniDAC (for SQLite database access)
   - DEC (Delphi Encryption Components)
 
-## Usage
+## 🚀 Usage
 
 ```bash
 FirefoxDecrypt.exe [options]
@@ -70,23 +70,6 @@ Export as JSON:
 FirefoxDecrypt.exe --format json
 ```
 
-## Building from Source
-
-1. Ensure you have Delphi installed with UniDAC and DEC components
-2. Clone the repository
-3. Open the project in Delphi IDE
-4. Build the project using the IDE or command line
-
-## Project Structure
-
-- `FirefoxDecrypt.dpr`: Main program file
-- `Unit1.pas`: Core decryption logic and helpers
-- Supporting units for:
-  - ASN.1 parsing
-  - Encryption/Decryption
-  - Firefox profile management
-  - Data output formatting
-
 ## How it Works
 
 1. Locates Firefox profiles on the system
@@ -97,11 +80,11 @@ FirefoxDecrypt.exe --format json
    - Master key derived from metadata
    - Individual encryption keys for each entry
 
-## License
+## 📄 License
 
 This project is intended for educational and recovery purposes only. Please ensure compliance with applicable laws and regulations in your jurisdiction.
 
-## Disclaimer
+## ⚠️ Disclaimer
 
 This tool comes with no warranties or guarantees. Users are responsible for ensuring they have the legal right to access any passwords they attempt to decrypt.
 
