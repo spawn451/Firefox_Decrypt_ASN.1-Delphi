@@ -38,7 +38,7 @@ The tool implements Firefox's password encryption scheme, including:
 - sqlite DLL (include)
 - Required Delphi components:
   - UniDAC (for SQLite database access)
-  - DEC (Delphi Encryption Components)
+  - DEC [DelphiEncryptionCompendium](https://github.com/MHumm/DelphiEncryptionCompendium)
 
 ## 🚀 Usage
 
