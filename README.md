@@ -14,13 +14,12 @@ Please ensure you have the legal right to access any passwords you attempt to de
 ## 🌟 Features
 
 - Supports multiple Firefox profiles
-- Handles both older and newer Firefox encryption schemes
+- Handles newer Firefox encryption schemes
 - Multiple output formats:
   - Human-readable text
   - JSON
   - CSV
 - Automatic profile detection
-- Cross-platform compatible (Windows)
 
 ## 🏗️ Technical Details
 
