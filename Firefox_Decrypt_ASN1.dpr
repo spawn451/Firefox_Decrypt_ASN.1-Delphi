@@ -4,26 +4,36 @@ program Firefox_Decrypt_ASN1;
 {$R *.res}
 
 uses
-  System.SysUtils,System.Classes,System.IniFiles,System.JSON,System.IOUtils,
-  System.NetEncoding,FirefoxCrypto;
+  System.SysUtils,
+  System.Classes,
+  System.IniFiles,
+  System.JSON,
+  System.IOUtils,
+  System.NetEncoding,
+  FirefoxCrypto;
 
 type
   TOutputFormat = (ofHuman, ofJSON, ofCSV);
 
   TLoginData = record
-    LoginURL: string;
+    FormSubmitURL: string;
+    Hostname: string;
+    Origin: string;
+    HttpRealm: string;
     Username: string;
     Password: string;
     EncryptedUsername: TBytes;
     EncryptedPassword: TBytes;
     CreateDate: Int64;
   end;
+
   TLoginDataArray = array of TLoginData;
 
   TFirefoxProfile = record
     Name: string;
     Path: string;
   end;
+
   TFirefoxProfiles = array of TFirefoxProfile;
 
   TFirefoxDecryptor = class
@@ -36,6 +46,8 @@ type
     procedure OutputCSV(const Credentials: TLoginDataArray);
     procedure OutputCredentials(const Credentials: TLoginDataArray);
     function LoadFirefoxLoginData: TLoginDataArray;
+    procedure ExtractURLs(const JSONItem: TJSONValue;
+      var LoginData: TLoginData);
   public
     constructor Create(const AProfilePath: string);
     destructor Destroy; override;
@@ -158,14 +170,31 @@ begin
   inherited;
 end;
 
+procedure TFirefoxDecryptor.ExtractURLs(const JSONItem: TJSONValue;
+  var LoginData: TLoginData);
+begin
+  LoginData.FormSubmitURL := JSONItem.GetValue<string>('formSubmitURL', '');
+  LoginData.Hostname := JSONItem.GetValue<string>('hostname', '');
+  LoginData.Origin := JSONItem.GetValue<string>('origin', '');
+  LoginData.HttpRealm := JSONItem.GetValue<string>('httpRealm', '');
+end;
+
 procedure TFirefoxDecryptor.OutputHuman(const Credentials: TLoginDataArray);
 begin
   for var i := 0 to Length(Credentials) - 1 do
   begin
     WriteLn;
-    WriteLn('Website:   ', Credentials[i].LoginURL);
+    if Credentials[i].FormSubmitURL <> '' then
+      WriteLn('Form Submit URL: ', Credentials[i].FormSubmitURL);
+    if Credentials[i].Hostname <> '' then
+      WriteLn('Hostname: ', Credentials[i].Hostname);
+    if Credentials[i].Origin <> '' then
+      WriteLn('Origin: ', Credentials[i].Origin);
+    if Credentials[i].HttpRealm <> '' then
+      WriteLn('HTTP Realm: ', Credentials[i].HttpRealm);
     WriteLn('Username: ''', Credentials[i].Username, '''');
     WriteLn('Password: ''', Credentials[i].Password, '''');
+    WriteLn('----------------------------------------');
   end;
   WriteLn;
 end;
@@ -180,7 +209,14 @@ begin
     for var i := 0 to Length(Credentials) - 1 do
     begin
       JSONObject := TJSONObject.Create;
-      JSONObject.AddPair('url', Credentials[i].LoginURL);
+      if Credentials[i].FormSubmitURL <> '' then
+        JSONObject.AddPair('formSubmitURL', Credentials[i].FormSubmitURL);
+      if Credentials[i].Hostname <> '' then
+        JSONObject.AddPair('hostname', Credentials[i].Hostname);
+      if Credentials[i].Origin <> '' then
+        JSONObject.AddPair('origin', Credentials[i].Origin);
+      if Credentials[i].HttpRealm <> '' then
+        JSONObject.AddPair('httpRealm', Credentials[i].HttpRealm);
       JSONObject.AddPair('username', Credentials[i].Username);
       JSONObject.AddPair('password', Credentials[i].Password);
       JSONArray.AddElement(JSONObject);
@@ -193,18 +229,23 @@ end;
 
 procedure TFirefoxDecryptor.OutputCSV(const Credentials: TLoginDataArray);
 begin
-  WriteLn('url;username;password');
+  WriteLn('FormSubmitURL;Hostname;Origin;HttpRealm;Username;Password');
   for var i := 0 to Length(Credentials) - 1 do
-    WriteLn(Format('%s;%s;%s', [Credentials[i].LoginURL,
+    WriteLn(Format('%s;%s;%s;%s;%s;%s', [Credentials[i].FormSubmitURL,
+      Credentials[i].Hostname, Credentials[i].Origin, Credentials[i].HttpRealm,
       Credentials[i].Username, Credentials[i].Password]));
 end;
 
-procedure TFirefoxDecryptor.OutputCredentials(const Credentials: TLoginDataArray);
+procedure TFirefoxDecryptor.OutputCredentials(const Credentials
+  : TLoginDataArray);
 begin
   case FOutputFormat of
-    ofHuman: OutputHuman(Credentials);
-    ofJSON:  OutputJSON(Credentials);
-    ofCSV:   OutputCSV(Credentials);
+    ofHuman:
+      OutputHuman(Credentials);
+    ofJSON:
+      OutputJSON(Credentials);
+    ofCSV:
+      OutputCSV(Credentials);
   end;
 end;
 
@@ -217,14 +258,21 @@ var
 begin
   SetLength(Result, 0);
   JSONFile := TPath.Combine(FProfilePath, 'logins.json');
+
   if not FileExists(JSONFile) then
+  begin
+    WriteLn('Debug: logins.json not found at ', JSONFile);
     Exit;
+  end;
 
   try
     JSONString := TFile.ReadAllText(JSONFile);
     JSONValue := TJSONObject.ParseJSONValue(JSONString);
     if not Assigned(JSONValue) then
+    begin
+      WriteLn('Debug: Failed to parse JSON');
       Exit;
+    end;
 
     try
       if not(JSONValue is TJSONObject) then
@@ -239,7 +287,7 @@ begin
       begin
         with Result[i] do
         begin
-          LoginURL := JSONArray.Items[i].GetValue<string>('formSubmitURL');
+          ExtractURLs(JSONArray.Items[i], Result[i]);
           EncryptedUsername := TNetEncoding.Base64.DecodeStringToBytes
             (JSONArray.Items[i].GetValue<string>('encryptedUsername'));
           EncryptedPassword := TNetEncoding.Base64.DecodeStringToBytes
@@ -252,7 +300,11 @@ begin
       JSONValue.Free;
     end;
   except
-    SetLength(Result, 0);
+    on E: Exception do
+    begin
+      WriteLn('Debug: Error loading login data: ', E.Message);
+      SetLength(Result, 0);
+    end;
   end;
 end;
 
@@ -275,26 +327,27 @@ begin
   // For each login entry:
   for var i := 0 to Length(Logins) - 1 do
   begin
-    DecryptedLogins[i].LoginURL := Logins[i].LoginURL;
-    //WriteLn('Processing credential ', i + 1, ' of ', Length(Logins));
+    // Copy URL fields
+    DecryptedLogins[i].FormSubmitURL := Logins[i].FormSubmitURL;
+    DecryptedLogins[i].Hostname := Logins[i].Hostname;
+    DecryptedLogins[i].Origin := Logins[i].Origin;
+    DecryptedLogins[i].HttpRealm := Logins[i].HttpRealm;
 
     try
-      var UsernamePBE := NewASN1PBE(Logins[i].EncryptedUsername);
-      DecryptedLogins[i].Username := TEncoding.UTF8.GetString(
-        UsernamePBE.Decrypt(MasterKey)
-      );
-      //WriteLn('Username decrypted successfully');
+      var
+      UsernamePBE := NewASN1PBE(Logins[i].EncryptedUsername);
+      DecryptedLogins[i].Username := TEncoding.UTF8.GetString
+        (UsernamePBE.Decrypt(MasterKey));
     except
       on E: Exception do
         WriteLn('Failed to decrypt username: ', E.Message);
     end;
 
     try
-      var PasswordPBE := NewASN1PBE(Logins[i].EncryptedPassword);
-      DecryptedLogins[i].Password := TEncoding.UTF8.GetString(
-        PasswordPBE.Decrypt(MasterKey)
-      );
-      //WriteLn('Password decrypted successfully');
+      var
+      PasswordPBE := NewASN1PBE(Logins[i].EncryptedPassword);
+      DecryptedLogins[i].Password := TEncoding.UTF8.GetString
+        (PasswordPBE.Decrypt(MasterKey));
     except
       on E: Exception do
         WriteLn('Failed to decrypt password: ', E.Message);
@@ -380,6 +433,7 @@ begin
       i := 1;
       while i <= ParamCount do
       begin
+
         Param := ParamStr(i);
         if (Param = '-f') or (Param = '--format') then
         begin
@@ -417,4 +471,5 @@ begin
       ExitCode := 1;
     end;
   end;
+
 end.
