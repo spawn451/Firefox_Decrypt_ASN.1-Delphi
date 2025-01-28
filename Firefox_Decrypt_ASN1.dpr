@@ -5,7 +5,7 @@ program Firefox_Decrypt_ASN1;
 
 uses
   System.SysUtils,System.Classes,System.IniFiles,System.JSON,System.IOUtils,
-  System.NetEncoding,Unit1;
+  System.NetEncoding,FirefoxCrypto;
 
 type
   TOutputFormat = (ofHuman, ofJSON, ofCSV);
@@ -74,6 +74,8 @@ begin
         begin
           SetLength(Result, Length(Result) + 1);
           Result[High(Result)].Name := ProfilePath;
+          // Fix path separator
+          ProfilePath := StringReplace(ProfilePath, '/', '\', [rfReplaceAll]);
           Result[High(Result)].Path := TPath.Combine(ExtractFilePath(IniPath),
             ProfilePath);
         end;
@@ -274,14 +276,14 @@ begin
   for var i := 0 to Length(Logins) - 1 do
   begin
     DecryptedLogins[i].LoginURL := Logins[i].LoginURL;
-    WriteLn('Processing credential ', i + 1, ' of ', Length(Logins));
+    //WriteLn('Processing credential ', i + 1, ' of ', Length(Logins));
 
     try
       var UsernamePBE := NewASN1PBE(Logins[i].EncryptedUsername);
       DecryptedLogins[i].Username := TEncoding.UTF8.GetString(
         UsernamePBE.Decrypt(MasterKey)
       );
-      WriteLn('Username decrypted successfully');
+      //WriteLn('Username decrypted successfully');
     except
       on E: Exception do
         WriteLn('Failed to decrypt username: ', E.Message);
@@ -292,7 +294,7 @@ begin
       DecryptedLogins[i].Password := TEncoding.UTF8.GetString(
         PasswordPBE.Decrypt(MasterKey)
       );
-      WriteLn('Password decrypted successfully');
+      //WriteLn('Password decrypted successfully');
     except
       on E: Exception do
         WriteLn('Failed to decrypt password: ', E.Message);
