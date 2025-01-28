@@ -3,10 +3,9 @@ unit Unit1;
 interface
 
 uses
-  System.SysUtils,System.Classes,System.IniFiles,System.JSON,System.IOUtils,
-  System.Win.Registry,System.Math,System.StrUtils,System.NetEncoding,
-  Winapi.Windows,Uni,SQLiteUniProvider,DECCipherBase,DECCipherModes,
-  DECCipherFormats,DECCiphers,DECFormat,DECHash;
+  System.SysUtils,System.Classes,System.IniFiles,System.IOUtils,
+  System.Math,System.StrUtils,Winapi.Windows,Uni,SQLiteUniProvider,
+  DECCipherBase,DECCipherModes,DECCipherFormats,DECCiphers,DECFormat,DECHash;
 
 const
   ASN1_INTEGER = $02;
